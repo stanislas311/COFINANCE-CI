@@ -120,14 +120,16 @@ python manage.py runserver
 Dans `config/settings.py`, remplacer la section DATABASES :
 
 ```python
+import os
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'cofinance_db',
-        'USER': 'postgres',
-        'PASSWORD': 'St_connor01',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.environ.get('DB_NAME', 'cofinance_db'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 ```
