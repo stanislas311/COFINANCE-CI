@@ -1,0 +1,183 @@
+[
+  {
+    "model": "accounts.user",
+    "pk": 2,
+    "fields": {
+      "username": "agent_koné",
+      "email": "kone.agent@cofinance.ci",
+      "first_name": "Mamadou",
+      "last_name": "Koné",
+      "password": "pbkdf2_sha256$870000$test$hashedpassword",
+      "role": "agent",
+      "telephone": "+225 07 01 02 03",
+      "region": "Abidjan",
+      "is_active": true,
+      "is_staff": false
+    }
+  },
+  {
+    "model": "accounts.user",
+    "pk": 3,
+    "fields": {
+      "username": "cliente_adjoua",
+      "email": "adjoua@gmail.com",
+      "first_name": "Adjoua",
+      "last_name": "Bamba",
+      "password": "pbkdf2_sha256$870000$test$hashedpassword",
+      "role": "client",
+      "telephone": "+225 05 10 20 30",
+      "region": "Bouaké",
+      "is_active": true,
+      "is_staff": false
+    }
+  },
+  {
+    "model": "accounts.user",
+    "pk": 4,
+    "fields": {
+      "username": "client_kouassi",
+      "email": "kouassi@gmail.com",
+      "first_name": "Kouassi",
+      "last_name": "Aka",
+      "password": "pbkdf2_sha256$870000$test$hashedpassword",
+      "role": "client",
+      "telephone": "+225 01 02 03 04",
+      "region": "Daloa",
+      "is_active": true,
+      "is_staff": false
+    }
+  },
+  {
+    "model": "assurances.produitassurance",
+    "pk": 1,
+    "fields": {
+      "nom": "Assurance Vie Essentielle",
+      "type_assurance": "vie",
+      "description": "Couverture vie de base pour micro-entrepreneurs. Capital versé aux bénéficiaires en cas de décès.",
+      "prime_mensuelle": "2500.00",
+      "capital_garanti": "1000000.00",
+      "duree_mois": 12,
+      "actif": true
+    }
+  },
+  {
+    "model": "assurances.produitassurance",
+    "pk": 2,
+    "fields": {
+      "nom": "Assurance Décès-Invalidité Plus",
+      "type_assurance": "deces_invalidite",
+      "description": "Protection complète décès et invalidité permanente. Accessible depuis Mobile Money.",
+      "prime_mensuelle": "4000.00",
+      "capital_garanti": "2500000.00",
+      "duree_mois": 24,
+      "actif": true
+    }
+  },
+  {
+    "model": "credits.demandeCredit",
+    "pk": 1,
+    "fields": {
+      "client": 3,
+      "agent": 2,
+      "montant_demande": "250000.00",
+      "duree_mois": 6,
+      "periodicite": "mensuel",
+      "taux_interet": "2.50",
+      "objet_credit": "Achat de stock pour boutique de tissu au marché de Bouaké",
+      "statut": "approuvee",
+      "score_eligibilite": 75,
+      "commentaire_agent": "Dossier complet, historique satisfaisant.",
+      "created_at": "2026-05-01T08:00:00Z",
+      "updated_at": "2026-05-03T10:00:00Z"
+    }
+  },
+  {
+    "model": "credits.demandeCredit",
+    "pk": 2,
+    "fields": {
+      "client": 4,
+      "agent": null,
+      "montant_demande": "100000.00",
+      "duree_mois": 3,
+      "periodicite": "mensuel",
+      "taux_interet": "2.50",
+      "objet_credit": "Fonds de roulement pour activité de vente de légumes",
+      "statut": "soumise",
+      "score_eligibilite": 65,
+      "commentaire_agent": "",
+      "created_at": "2026-06-01T09:00:00Z",
+      "updated_at": "2026-06-01T09:00:00Z"
+    }
+  },
+  {
+    "model": "assurances.souscription",
+    "pk": 1,
+    "fields": {
+      "client": 3,
+      "produit": 1,
+      "date_debut": "2026-01-01",
+      "date_fin": "2026-12-31",
+      "statut": "active",
+      "numero_police": "COF-A1B2C3D4",
+      "created_at": "2026-01-01T08:00:00Z"
+    }
+  },
+  {
+    "model": "support.conversation",
+    "pk": 1,
+    "fields": {
+      "client": 3,
+      "agent": 2,
+      "sujet": "Question sur mon échéancier de remboursement",
+      "statut": "en_cours",
+      "created_at": "2026-06-05T10:00:00Z",
+      "updated_at": "2026-06-05T10:30:00Z"
+    }
+  },
+  {
+    "model": "support.message",
+    "pk": 1,
+    "fields": {
+      "conversation": 1,
+      "expediteur": 3,
+      "contenu": "Bonjour, je voudrais savoir quand tombe ma prochaine échéance.",
+      "lu": true,
+      "timestamp": "2026-06-05T10:00:00Z"
+    }
+  },
+  {
+    "model": "support.message",
+    "pk": 2,
+    "fields": {
+      "conversation": 1,
+      "expediteur": 2,
+      "contenu": "Bonjour Adjoua, votre prochaine échéance est le 15 juin 2026 pour un montant de 44 792 FCFA.",
+      "lu": false,
+      "timestamp": "2026-06-05T10:30:00Z"
+    }
+  },
+  {
+    "model": "notifications.notification",
+    "pk": 1,
+    "fields": {
+      "destinataire": 3,
+      "titre": "Demande de crédit approuvée",
+      "message": "Votre demande de crédit #1 de 250 000 FCFA a été approuvée. Le décaissement sera effectué sous 48h.",
+      "type_notif": "credit",
+      "lu": false,
+      "created_at": "2026-05-03T10:00:00Z"
+    }
+  },
+  {
+    "model": "notifications.notification",
+    "pk": 2,
+    "fields": {
+      "destinataire": 3,
+      "titre": "Rappel de remboursement",
+      "message": "Votre échéance #3 de 44 792 FCFA arrive dans 3 jours, le 15 juin 2026.",
+      "type_notif": "remboursement",
+      "lu": false,
+      "created_at": "2026-06-12T08:00:00Z"
+    }
+  }
+]
