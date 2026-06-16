@@ -22,8 +22,8 @@ Développée avec Django REST Framework + Django Channels (WebSocket).
 ### 1. Cloner le dépôt
 
 ```bash
-git clone https://github.com/<votre-repo>/cofinance-ci.git
-cd cofinance-ci
+git clone https://github.com/stanislas311/COFINANCE-CI
+cd COFINANCE-CI
 ```
 
 ### 2. Créer et activer l'environnement virtuel
@@ -54,17 +54,38 @@ python manage.py migrate
 python manage.py seed_db
 ```
 
-### 6. Créer un superutilisateur
+### 6. Créer un superutilisateur (optionnel)
 
 ```bash
 python manage.py createsuperuser
 ```
 
+*Note : La commande `seed_db` crée déjà un utilisateur admin avec le rôle administrateur.*
+
 ### 7. Lancer le serveur
 
 ```bash
-python manage.py runserver
+python -m daphne -p 8000 config.asgi:application
 ```
+
+---
+
+## Alertes automatiques
+
+Le système inclut une commande management pour envoyer les alertes automatiques :
+
+- **Alertes J-3** : Rappel 3 jours avant chaque échéance
+- **Alertes J+1** : Notification 1 jour après échéance non payée (avec pénalités)
+- **Pénalités de retard** : Calcul automatique (2% par jour de retard)
+- **Alertes assurance J-15** : Notification 15 jours avant expiration des assurances
+
+Pour exécuter les alertes manuellement ou via planificateur système (cron/Task Scheduler) :
+
+```bash
+python manage.py send_alerts
+```
+
+**En production** : Configurez cette commande pour s'exécuter quotidiennement (par exemple via cron sur Linux ou Task Scheduler sur Windows).
 
 ---
 
@@ -83,13 +104,14 @@ python manage.py runserver
 
 | Utilisateur | Mot de passe | Rôle |
 |-------------|--------------|------|
-| admin | (défini à la création) | Administrateur |
+| admin | CofinanceCI2026! | Administrateur |
 | agent_kone | CofinanceCI2026! | Agent |
 | cliente_adjoua | CofinanceCI2026! | Client |
 | client_kouassi | CofinanceCI2026! | Client |
+| cliente_fatou | CofinanceCI2026! | Client |
 
 ---
-
+r
 ## Modules API
 
 | Endpoint | Description |

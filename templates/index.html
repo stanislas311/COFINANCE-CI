@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | COFINANCE CI{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Admin Cards */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    .stat-card {
+        background: var(--white);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(15, 76, 129, 0.08);
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: var(--primary);
+    }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+
+    .stat-info {
+        flex: 1;
+    }
+
+    .stat-label {
+        font-size: 13px;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+
+    .stat-value {
+        font-size: 28px;
+        font-weight: 800;
+        color: var(--text);
+        line-height: 1;
+    }
+
+    /* Charts Section */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+    }
+
+    .chart-card {
+        background: var(--white);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        border: 1px solid var(--border);
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .chart-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    /* Client Dashboard */
+    .welcome-banner {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        border-radius: 20px;
+        padding: 40px;
+        color: white;
+        margin-bottom: 32px;
+        box-shadow: 0 10px 30px rgba(15, 76, 129, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .welcome-banner::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+    }
+
+    .welcome-title {
+        font-size: 28px;
+        font-weight: 800;
+        margin-bottom: 8px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .welcome-subtitle {
+        font-size: 15px;
+        opacity: 0.8;
+        max-width: 500px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .action-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+    }
+
+    .action-card {
+        background: var(--white);
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        text-decoration: none;
+        color: var(--text);
+        transition: all 0.2s;
+    }
+
+    .action-card:hover {
+        border-color: var(--primary);
+        box-shadow: 0 8px 25px rgba(15, 76, 129, 0.1);
+        transform: translateY(-4px);
+    }
+
+    .action-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: var(--primary-light);
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+    }
+
+    .action-title {
+        font-size: 16px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .action-desc {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+</style>
+<!-- Inclusion de Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Admin Dashboard -->
+<div id="admin-dashboard" style="display: none;">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Tableau de bord Admin</h1>
+            <p class="page-subtitle">Performances et suivi global de l'activité</p>
+        </div>
+        <button class="btn-primary" onclick="loadAdminStats()">
+            <i data-lucide="refresh-cw" style="width: 16px;"></i> Actualiser
+        </button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="dashboard-grid">
+        <div class="stat-card" style="--primary: #4f46e5;">
+            <div class="stat-icon" style="background: #e0e7ff; color: #4f46e5;">
+                <i data-lucide="users" style="width: 28px; height: 28px;"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Clients Actifs</div>
+                <div class="stat-value" id="stat-clients">0</div>
+            </div>
+        </div>
+
+        <div class="stat-card" style="--primary: #16a34a;">
+            <div class="stat-icon" style="background: #dcfce7; color: #16a34a;">
+                <i data-lucide="check-circle" style="width: 28px; height: 28px;"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Crédits Approuvés</div>
+                <div class="stat-value" id="stat-credits">0</div>
+            </div>
+        </div>
+
+        <div class="stat-card" style="--primary: #ca8a04;">
+            <div class="stat-icon" style="background: #fef9c3; color: #ca8a04;">
+                <i data-lucide="clock" style="width: 28px; height: 28px;"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Demandes en attente</div>
+                <div class="stat-value" id="stat-attente">0</div>
+            </div>
+        </div>
+
+        <div class="stat-card" style="--primary: #dc2626;">
+            <div class="stat-icon" style="background: #fee2e2; color: #dc2626;">
+                <i data-lucide="message-square" style="width: 28px; height: 28px;"></i>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">Chats Ouverts</div>
+                <div class="stat-value" id="stat-chats">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">Évolution des demandes de crédits (Simulation)</div>
+            </div>
+            <canvas id="mainChart" height="100"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-header">
+                <div class="chart-title">Répartition des statuts</div>
+            </div>
+            <canvas id="pieChart" height="200"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Client Dashboard -->
+<div id="client-dashboard" style="display: none;">
+    <div class="welcome-banner">
+        <h1 class="welcome-title" id="client-welcome-name">Bienvenue sur votre espace !</h1>
+        <p class="welcome-subtitle">Gérez vos financements, vos remboursements et échangez avec votre conseiller en toute sécurité.</p>
+    </div>
+
+    <div class="action-grid">
+        <a href="{% url 'credits_view' %}" class="action-card">
+            <div class="action-icon">
+                <i data-lucide="wallet" style="width: 32px; height: 32px;"></i>
+            </div>
+            <div class="action-title">Demander un Crédit</div>
+            <div class="action-desc">Faites une nouvelle demande de microcrédit en quelques clics.</div>
+        </a>
+
+        <a href="{% url 'remboursements_view' %}" class="action-card">
+            <div class="action-icon" style="background: #dcfce7; color: #16a34a;">
+                <i data-lucide="history" style="width: 32px; height: 32px;"></i>
+            </div>
+            <div class="action-title">Mes Remboursements</div>
+            <div class="action-desc">Consultez l'historique de vos paiements et échéances.</div>
+        </a>
+
+        <a href="{% url 'chat' %}" class="action-card">
+            <div class="action-icon" style="background: #fee2e2; color: #dc2626;">
+                <i data-lucide="message-circle" style="width: 32px; height: 32px;"></i>
+            </div>
+            <div class="action-title">Contacter le Support</div>
+            <div class="action-desc">Un conseiller répondra à toutes vos questions en direct.</div>
+        </a>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('userLoaded', async () => {
+        const user = window.currentUser;
+        
+        if (user.role === 'admin' || user.role === 'agent') {
+            document.getElementById('admin-dashboard').style.display = 'block';
+            await loadAdminStats();
+            initCharts();
+        } else {
+            document.getElementById('client-dashboard').style.display = 'block';
+            document.getElementById('client-welcome-name').textContent = `Bonjour, ${user.first_name || user.username} !`;
+        }
+    });
+
+    async function loadAdminStats() {
+        try {
+            const response = await apiFetch('/dashboard/');
+            if (response.ok) {
+                const data = await response.json();
+                
+                const clients = data.clients ? data.clients.total : 0;
+                const credits_approuves = (data.credits && data.credits.par_statut && data.credits.par_statut.approuvee) ? data.credits.par_statut.approuvee : 0;
+                const en_attente = (data.credits && data.credits.par_statut && data.credits.par_statut.soumise) ? data.credits.par_statut.soumise : 0;
+                const chats = data.support ? data.support.conversations_ouvertes : 0;
+
+                // Animation des nombres
+                animateValue('stat-clients', 0, clients, 1000);
+                animateValue('stat-credits', 0, credits_approuves, 1000);
+                animateValue('stat-attente', 0, en_attente, 1000);
+                animateValue('stat-chats', 0, chats, 1000);
+            }
+        } catch (e) {
+            console.error("Erreur de chargement du dashboard", e);
+        }
+    }
+
+    // Fonction d'animation pour rendre les chiffres dynamiques
+    function animateValue(id, start, end, duration) {
+        const obj = document.getElementById(id);
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            obj.innerHTML = Math.floor(progress * (end - start) + start);
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    // Initialisation des graphiques (Chart.js)
+    function initCharts() {
+        // Line Chart (Evolution)
+        const ctxMain = document.getElementById('mainChart').getContext('2d');
+        
+        // Gradient pour le graphique
+        const gradientBlue = ctxMain.createLinearGradient(0, 0, 0, 400);
+        gradientBlue.addColorStop(0, 'rgba(15, 76, 129, 0.4)');
+        gradientBlue.addColorStop(1, 'rgba(15, 76, 129, 0.0)');
+
+        new Chart(ctxMain, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+                datasets: [{
+                    label: 'Nouvelles demandes',
+                    data: [12, 19, 15, 25, 22, 30],
+                    borderColor: '#0f4c81',
+                    backgroundColor: gradientBlue,
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#0f4c81',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { borderDash: [5, 5] } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // Doughnut Chart (Répartition)
+        const ctxPie = document.getElementById('pieChart').getContext('2d');
+        new Chart(ctxPie, {
+            type: 'doughnut',
+            data: {
+                labels: ['Approuvés', 'En attente', 'Rejetés'],
+                datasets: [{
+                    data: [60, 25, 15],
+                    backgroundColor: ['#16a34a', '#ca8a04', '#dc2626'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                cutout: '75%',
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

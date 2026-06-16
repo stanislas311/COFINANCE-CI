@@ -41,8 +41,8 @@ class DemandeCreditCreateSerializer(serializers.ModelSerializer):
         return credit
 
     def generer_echeancier(self, credit):
-        montant = credit.montant_demande
-        taux = credit.taux_interet / Decimal('100')
+        montant = Decimal(str(credit.montant_demande))
+        taux = Decimal(str(credit.taux_interet)) / Decimal('100')
         duree = credit.duree_mois
         principal_par_echeance = montant / duree
         date_debut = date.today()

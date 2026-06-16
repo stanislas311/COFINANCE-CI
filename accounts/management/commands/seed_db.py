@@ -20,6 +20,8 @@ class Command(BaseCommand):
     def create_users(self):
         from accounts.models import User
         users = [
+            dict(username='admin', email='admin@cofinance.ci', first_name='Administrateur',
+                 last_name='COFINANCE', role='admin', telephone='+225 01 01 01 01', region='Abidjan'),
             dict(username='agent_kone', email='kone@cofinance.ci', first_name='Mamadou',
                  last_name='Kone', role='agent', telephone='+225 07 01 02 03', region='Abidjan'),
             dict(username='cliente_adjoua', email='adjoua@gmail.com', first_name='Adjoua',
@@ -30,11 +32,19 @@ class Command(BaseCommand):
                  last_name='Diallo', role='client', telephone='+225 07 08 09 10', region='San Pedro'),
         ]
         for u in users:
-            if not User.objects.filter(username=u['username']).exists():
-                user = User(**u)
+            user, created = User.objects.get_or_create(username=u['username'], defaults=u)
+            if created:
+                user.set_password('CofinanceCI2026!')
+            # Rendre l'admin superuser et forcer le rôle admin
+            if u['username'] == 'admin':
+                user.role = 'admin'
+                user.is_superuser = True
+                user.is_staff = True
                 user.set_password('CofinanceCI2026!')
                 user.save()
-                self.stdout.write(f'  Utilisateur cree : {u["username"]}')
+                self.stdout.write(f'  Admin mis à jour : {u["username"]} (role: {user.role})')
+            elif created:
+                self.stdout.write(f'  Utilisateur créé : {u["username"]} (role: {u["role"]})')
 
     def create_produits(self):
         from assurances.models import ProduitAssurance
@@ -122,10 +132,12 @@ class Command(BaseCommand):
 
         try:
             adjoua = User.objects.get(username='cliente_adjoua')
+            kouassi = User.objects.get(username='client_kouassi')
             agent = User.objects.get(username='agent_kone')
         except User.DoesNotExist:
             return
 
+        # Première conversation avec cliente_adjoua
         if not Conversation.objects.filter(client=adjoua).exists():
             conv = Conversation.objects.create(
                 client=adjoua, agent=agent,
@@ -140,7 +152,24 @@ class Command(BaseCommand):
                 conversation=conv, expediteur=agent,
                 contenu='Bonjour Adjoua, votre prochaine echeance est le 15 juin 2026 pour 44 792 FCFA.',
             )
-            self.stdout.write('  Conversation et messages crees.')
+            self.stdout.write('  Conversation 1 et messages crees.')
+
+        # Deuxième conversation avec client_kouassi
+        if not Conversation.objects.filter(client=kouassi).exists():
+            conv2 = Conversation.objects.create(
+                client=kouassi, agent=agent,
+                sujet='Demande de renseignements sur les taux d\'interet',
+                statut='ouverte',
+            )
+            Message.objects.create(
+                conversation=conv2, expediteur=kouassi,
+                contenu='Bonjour, quels sont les taux d\'interet actuels pour les credits de 100 000 FCFA ?',
+            )
+            Message.objects.create(
+                conversation=conv2, expediteur=agent,
+                contenu='Bonjour Kouassi, nos taux actuels sont de 12% annuel pour les credits de ce montant.',
+            )
+            self.stdout.write('  Conversation 2 et messages crees.')
 
     def create_notifications(self):
         from accounts.models import User

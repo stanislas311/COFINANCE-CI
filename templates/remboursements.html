@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Mes Remboursements | COFINANCE CI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Remboursements</h1>
+        <p class="page-subtitle">Historique de vos paiements</p>
+    </div>
+</div>
+
+<div class="card">
+    <div id="remboursements-loading" style="padding: 20px; text-align: center; color: var(--text-muted);">
+        Chargement des paiements...
+    </div>
+    <div id="remboursements-empty" style="display: none; padding: 20px; text-align: center; color: var(--text-muted);">
+        Aucun paiement trouvé.
+    </div>
+    <table id="remboursements-table" style="display: none;">
+        <thead>
+            <tr>
+                <th>Réf. Paiement</th>
+                <th>Montant Payé</th>
+                <th>Méthode</th>
+                <th>Agent</th>
+                <th>Date</th>
+                <th>Statut</th>
+            </tr>
+        </thead>
+        <tbody id="remboursements-tbody">
+            <!-- Rempli par JS -->
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('userLoaded', async () => {
+        await loadRemboursements();
+    });
+
+    async function loadRemboursements() {
+        try {
+            // L'API /remboursements/ renvoie la liste des paiements effectues
+            const response = await apiFetch('/remboursements/'); 
+            if (response.ok) {
+                const paiements = await response.json();
+                document.getElementById('remboursements-loading').style.display = 'none';
+                
+                if (paiements.length === 0) {
+                    document.getElementById('remboursements-empty').style.display = 'block';
+                } else {
+                    document.getElementById('remboursements-table').style.display = 'table';
+                    const tbody = document.getElementById('remboursements-tbody');
+                    tbody.innerHTML = '';
+                    
+                    paiements.forEach(paiement => {
+                        const tr = document.createElement('tr');
+                        const dateObj = new Date(paiement.date_paiement);
+                        const dateStr = dateObj.toLocaleDateString('fr-FR') + ' à ' + dateObj.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
+                        
+                        let badge = '<span class="badge badge-success">Validé</span>';
+
+                        tr.innerHTML = `
+                            <td><span style="font-family: monospace; background: #f3f4f6; padding: 2px 6px; border-radius: 4px;">${paiement.reference_transaction}</span></td>
+                            <td style="font-weight: 700; color: #166534;">${parseInt(paiement.montant_paye).toLocaleString()} FCFA</td>
+                            <td style="text-transform: capitalize;">${paiement.methode_paiement}</td>
+                            <td>${paiement.agent_nom || 'Auto'}</td>
+                            <td>${dateStr}</td>
+                            <td>${badge}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } else {
+                 document.getElementById('remboursements-loading').textContent = "Erreur lors de la récupération des données.";
+            }
+        } catch (e) {
+            console.error("Erreur de chargement", e);
+            document.getElementById('remboursements-loading').textContent = 'Erreur lors du chargement des données.';
+        }
+    }
+</script>
+{% endblock %}

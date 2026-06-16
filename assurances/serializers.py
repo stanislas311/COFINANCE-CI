@@ -32,10 +32,11 @@ class SouscriptionCreateSerializer(serializers.ModelSerializer):
         from datetime import timedelta
         produit = validated_data['produit']
         date_debut = validated_data['date_debut']
-        date_fin = date_debut.replace(
-            year=date_debut.year + produit.duree_mois // 12,
-            month=((date_debut.month + produit.duree_mois - 1) % 12) + 1
-        )
+        import calendar
+        month = ((date_debut.month + produit.duree_mois - 1) % 12) + 1
+        year = date_debut.year + (date_debut.month + produit.duree_mois - 1) // 12
+        day = min(date_debut.day, calendar.monthrange(year, month)[1])
+        date_fin = date_debut.replace(year=year, month=month, day=day)
         numero_police = f"COF-{uuid.uuid4().hex[:8].upper()}"
         return Souscription.objects.create(
             client=self.context['request'].user,

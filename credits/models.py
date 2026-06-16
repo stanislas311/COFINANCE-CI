@@ -1,4 +1,7 @@
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
+from decimal import Decimal
 
 # Create your models here.
 from django.db import models
@@ -92,3 +95,32 @@ class Echeance(models.Model):
 
     def __str__(self):
         return f"Echeance #{self.numero} - Credit #{self.credit.id}"
+
+    def calculer_penalite(self):
+        """
+        Calcule automatiquement les pénalités de retard.
+        Taux de pénalité : 2% du montant total par jour de retard.
+        """
+        if self.statut != 'en_retard' or self.date_echeance >= timezone.now().date():
+            return Decimal('0.00')
+        
+        jours_retard = (timezone.now().date() - self.date_echeance).days
+        if jours_retard <= 0:
+            return Decimal('0.00')
+        
+        taux_penalite = Decimal('0.02')  # 2% par jour de retard
+        penalite = self.montant_total * taux_penalite * Decimal(jours_retard)
+        return round(penalite, 2)
+
+    def mettre_a_jour_statut_et_penalite(self):
+        """
+        Met à jour le statut de l'échéance et calcule les pénalités si en retard.
+        """
+        if self.statut == 'payee':
+            return
+        
+        aujourd_hui = timezone.now().date()
+        if aujourd_hui > self.date_echeance:
+            self.statut = 'en_retard'
+            self.montant_penalite = self.calculer_penalite()
+            self.save()

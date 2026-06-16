@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Mes Assurances | COFINANCE CI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Assurances Mobiles</h1>
+        <p class="page-subtitle">Gérez vos polices d'assurance et souscriptions</p>
+    </div>
+    <div id="client-actions" style="display: none;">
+        <button class="btn-primary" onclick="document.getElementById('modal-assurance').style.display='flex'">
+            <i data-lucide="shield-plus"></i> Souscrire une assurance
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div id="assurances-loading" style="padding: 20px; text-align: center; color: var(--text-muted);">
+        Chargement des souscriptions...
+    </div>
+    <div id="assurances-empty" style="display: none; padding: 20px; text-align: center; color: var(--text-muted);">
+        Aucune souscription d'assurance trouvée.
+    </div>
+    <table id="assurances-table" style="display: none;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th id="col-client" style="display: none;">Client</th>
+                <th>Produit</th>
+                <th>Date Souscription</th>
+                <th>Date Expiration</th>
+                <th>Statut</th>
+            </tr>
+        </thead>
+        <tbody id="assurances-tbody">
+            <!-- Rempli par JS -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal Souscription Assurance -->
+<div id="modal-assurance" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;">
+    <div class="card" style="width: 100%; max-width: 500px;">
+        <h2 style="margin-bottom: 20px; font-size: 18px;">Souscrire à une assurance</h2>
+        <form id="form-assurance">
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;">Choisissez un produit</label>
+                <select id="produit" required style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px;">
+                    <option value="">Chargement des produits...</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="document.getElementById('modal-assurance').style.display='none'" style="padding: 10px 20px; border: 1px solid var(--border); background: transparent; border-radius: 8px; cursor: pointer;">Annuler</button>
+                <button type="submit" class="btn-primary">Souscrire</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('userLoaded', async () => {
+        const user = window.currentUser;
+        
+        if (user.role === 'client') {
+            document.getElementById('client-actions').style.display = 'block';
+            await loadProduitsAssurance();
+        } else {
+            document.getElementById('col-client').style.display = 'table-cell';
+        }
+
+        await loadSouscriptions();
+    });
+
+    async function loadProduitsAssurance() {
+        try {
+            const response = await apiFetch('/assurances/produits/');
+            if (response.ok) {
+                const produits = await response.json();
+                const select = document.getElementById('produit');
+                select.innerHTML = '';
+                produits.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p.id;
+                    option.textContent = `${p.nom} - ${parseInt(p.prime_mensuelle).toLocaleString()} FCFA/mois`;
+                    select.appendChild(option);
+                });
+            }
+        } catch (e) {
+            console.error("Erreur chargement produits", e);
+        }
+    }
+
+    async function loadSouscriptions() {
+        try {
+            const response = await apiFetch('/assurances/souscriptions/');
+            if (response.ok) {
+                const souscriptions = await response.json();
+                document.getElementById('assurances-loading').style.display = 'none';
+                
+                if (souscriptions.length === 0) {
+                    document.getElementById('assurances-empty').style.display = 'block';
+                } else {
+                    document.getElementById('assurances-table').style.display = 'table';
+                    const tbody = document.getElementById('assurances-tbody');
+                    tbody.innerHTML = '';
+                    
+                    souscriptions.forEach(souscription => {
+                        const tr = document.createElement('tr');
+                        const isClient = window.currentUser.role === 'client';
+                        const dateSousc = new Date(souscription.date_souscription).toLocaleDateString('fr-FR');
+                        const dateExp = new Date(souscription.date_expiration).toLocaleDateString('fr-FR');
+                        
+                        let statusBadge = '';
+                        switch(souscription.statut) {
+                            case 'active': statusBadge = '<span class="badge badge-success">Active</span>'; break;
+                            case 'expiree': statusBadge = '<span class="badge badge-danger">Expirée</span>'; break;
+                            case 'annulee': statusBadge = '<span class="badge badge-warning">Annulée</span>'; break;
+                            default: statusBadge = `<span class="badge">${souscription.statut}</span>`;
+                        }
+
+                        tr.innerHTML = `
+                            <td>#${souscription.id}</td>
+                            ${!isClient ? `<td>${souscription.client_nom || 'Client ID: '+souscription.client}</td>` : ''}
+                            <td style="font-weight: 600;">${souscription.produit_nom || 'Produit #'+souscription.produit}</td>
+                            <td>${dateSousc}</td>
+                            <td style="font-weight: 600;">${dateExp}</td>
+                            <td>${statusBadge}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } else if (response.status === 404) {
+                 document.getElementById('assurances-loading').textContent = "L'endpoint API n'est pas encore disponible.";
+            }
+        } catch (e) {
+            console.error("Erreur de chargement", e);
+            document.getElementById('assurances-loading').textContent = 'Erreur lors du chargement des données.';
+        }
+    }
+
+    // Submit new assurance
+    document.getElementById('form-assurance').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const produit_id = document.getElementById('produit').value;
+        const date_debut = new Date().toISOString().split('T')[0];
+
+        try {
+            const response = await apiFetch('/assurances/souscriptions/', {
+                method: 'POST',
+                body: JSON.stringify({ produit: produit_id, date_debut: date_debut })
+            });
+
+            if (response.ok) {
+                document.getElementById('modal-assurance').style.display = 'none';
+                loadSouscriptions();
+                alert('Souscription validée avec succès !');
+            } else {
+                const errorData = await response.text();
+                alert('Erreur: ' + errorData);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erreur de connexion');
+        }
+    });
+</script>
+{% endblock %}

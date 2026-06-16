@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Mes Crédits | COFINANCE CI{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Gestion des Crédits</h1>
+        <p class="page-subtitle">Suivi et demandes de microcrédits</p>
+    </div>
+    <div id="client-actions" style="display: none;">
+        <button class="btn-primary" onclick="document.getElementById('modal-credit').style.display='flex'">
+            <i data-lucide="plus"></i> Nouvelle demande
+        </button>
+    </div>
+</div>
+
+<div class="card">
+    <div id="credits-loading" style="padding: 20px; text-align: center; color: var(--text-muted);">
+        Chargement des crédits...
+    </div>
+    <div id="credits-empty" style="display: none; padding: 20px; text-align: center; color: var(--text-muted);">
+        Aucune demande de crédit trouvée.
+    </div>
+    <table id="credits-table" style="display: none;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th id="col-client" style="display: none;">Client</th>
+                <th>Montant</th>
+                <th>Durée</th>
+                <th>Périodicité</th>
+                <th>Score</th>
+                <th>Date</th>
+                <th>Statut</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="credits-tbody">
+            <!-- Rempli par JS -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal Demande Crédit -->
+<div id="modal-credit" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;">
+    <div class="card" style="width: 100%; max-width: 500px;">
+        <h2 style="margin-bottom: 20px; font-size: 18px;">Nouvelle demande de crédit</h2>
+        <form id="form-credit">
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;">Montant demandé (FCFA)</label>
+                <input type="number" id="montant" required style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px;">
+            </div>
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;">Durée (Mois)</label>
+                <input type="number" id="duree" required min="1" max="24" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px;">
+            </div>
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;">Périodicité de remboursement</label>
+                <select id="periodicite" required style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px;">
+                    <option value="hebdomadaire">Hebdomadaire</option>
+                    <option value="mensuel">Mensuel</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 24px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;">Motif</label>
+                <textarea id="motif" required rows="3" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px;"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" onclick="document.getElementById('modal-credit').style.display='none'" style="padding: 10px 20px; border: 1px solid var(--border); background: transparent; border-radius: 8px; cursor: pointer;">Annuler</button>
+                <button type="submit" class="btn-primary">Soumettre</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('userLoaded', async () => {
+        const user = window.currentUser;
+        
+        if (user.role === 'client') {
+            document.getElementById('client-actions').style.display = 'block';
+        } else {
+            document.getElementById('col-client').style.display = 'table-cell';
+        }
+
+        await loadCredits();
+    });
+
+    async function loadCredits() {
+        try {
+            const response = await apiFetch('/credits/');
+            if (response.ok) {
+                const credits = await response.json();
+                document.getElementById('credits-loading').style.display = 'none';
+                
+                if (credits.length === 0) {
+                    document.getElementById('credits-empty').style.display = 'block';
+                } else {
+                    document.getElementById('credits-table').style.display = 'table';
+                    const tbody = document.getElementById('credits-tbody');
+                    tbody.innerHTML = '';
+                    
+                    credits.forEach(credit => {
+                        const tr = document.createElement('tr');
+                        const isClient = window.currentUser.role === 'client';
+                        const dateObj = new Date(credit.created_at);
+                        const dateStr = dateObj.toLocaleDateString('fr-FR');
+                        
+                        let statusBadge = '';
+                        switch(credit.statut) {
+                            case 'soumise': statusBadge = '<span class="badge badge-warning">Soumise</span>'; break;
+                            case 'en_analyse': statusBadge = '<span class="badge badge-info">En analyse</span>'; break;
+                            case 'approuvee': statusBadge = '<span class="badge badge-success">Approuvée</span>'; break;
+                            case 'rejetee': statusBadge = '<span class="badge badge-danger">Rejetée</span>'; break;
+                            case 'decaissee': statusBadge = '<span class="badge badge-success">Décaissée</span>'; break;
+                            default: statusBadge = `<span class="badge">${credit.statut}</span>`;
+                        }
+
+                        let actions = '';
+                        if (window.currentUser.role === 'admin' && credit.statut === 'soumise') {
+                            actions = `<button onclick="approuverCredit(${credit.id})" style="padding: 6px 12px; background: #16a34a; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">Approuver</button>`;
+                        } else if (window.currentUser.role === 'admin' && credit.statut === 'approuvee') {
+                            actions = `<button onclick="decaisserCredit(${credit.id})" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">Décaisser</button>`;
+                        } else {
+                            actions = '<span style="color: #9ca3af; font-size: 12px;">-</span>';
+                        }
+
+                        tr.innerHTML = `
+                            <td>#${credit.id}</td>
+                            ${!isClient ? `<td>${credit.client_nom || 'Client ID: '+credit.client}</td>` : ''}
+                            <td style="font-weight: 600;">${parseInt(credit.montant_demande).toLocaleString()} FCFA</td>
+                            <td>${credit.duree_mois} mois</td>
+                            <td style="text-transform: capitalize;">${credit.periodicite}</td>
+                            <td>${credit.score_eligibilite !== null ? credit.score_eligibilite + '/100' : 'N/A'}</td>
+                            <td>${dateStr}</td>
+                            <td>${statusBadge}</td>
+                            <td>${actions}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            }
+        } catch (e) {
+            console.error("Erreur de chargement", e);
+            document.getElementById('credits-loading').textContent = 'Erreur lors du chargement des données.';
+        }
+    }
+
+    // Submit new credit
+    document.getElementById('form-credit').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const montant = document.getElementById('montant').value;
+        const duree = document.getElementById('duree').value;
+        const periodicite = document.getElementById('periodicite').value;
+        const motif = document.getElementById('motif').value;
+
+        try {
+            const response = await apiFetch('/credits/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    montant_demande: montant,
+                    duree_mois: duree,
+                    periodicite: periodicite,
+                    objet_credit: motif
+                })
+            });
+
+            if (response.ok) {
+                document.getElementById('modal-credit').style.display = 'none';
+                document.getElementById('form-credit').reset();
+                loadCredits();
+                alert('Demande soumise avec succès !');
+            } else {
+                const errorData = await response.text();
+                alert('Erreur: ' + errorData);
+                console.error("API Error Response:", errorData);
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erreur de connexion');
+        }
+    });
+
+    async function approuverCredit(id) {
+        if(confirm("Confirmer l'approbation de ce crédit ?")) {
+            try {
+                const response = await apiFetch(`/credits/${id}/statut/`, {
+                    method: 'POST',
+                    body: JSON.stringify({ statut: 'approuvee' })
+                });
+                if (response.ok) loadCredits();
+            } catch (e) { console.error(e); }
+        }
+    }
+
+    async function decaisserCredit(id) {
+        if(confirm("Confirmer le décaissement de ce crédit ?")) {
+            try {
+                const response = await apiFetch(`/credits/${id}/statut/`, {
+                    method: 'POST',
+                    body: JSON.stringify({ statut: 'decaissee' })
+                });
+                if (response.ok) loadCredits();
+                else alert('Erreur lors du décaissement');
+            } catch (e) { console.error(e); }
+        }
+    }
+</script>
+{% endblock %}
